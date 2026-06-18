@@ -29,11 +29,9 @@ describe("opencode/process", () => {
     const command = createOpencodeServeSpawnCommand({ host: "localhost", port: 4987 });
 
     if (process.platform === "win32") {
-      expect(command).toEqual({
-        command: "cmd.exe",
-        args: ["/c", "opencode", "serve", "--port", "4987"],
-        windowsHide: true,
-      });
+      expect(command.windowsHide).toBe(true);
+      expect(command.command).not.toBe("cmd.exe");
+      expect(command.args).toEqual(["serve", "--port", "4987"]);
       return;
     }
 

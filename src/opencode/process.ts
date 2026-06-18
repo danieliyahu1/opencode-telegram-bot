@@ -1,4 +1,6 @@
 import { exec, spawn, type ChildProcess } from "node:child_process";
+import { existsSync } from "node:fs";
+import * as path from "node:path";
 import { promisify } from "node:util";
 
 const execAsync = promisify(exec);
@@ -43,16 +45,39 @@ export function resolveLocalOpencodeTarget(apiUrl: string): LocalOpencodeTarget 
   }
 }
 
+function resolveWindowsOpencodeExe(): string {
+  const npmPrefix = path.dirname(process.execPath);
+  const candidate = path.join(
+    npmPrefix,
+    "node_modules",
+    "opencode-ai",
+    "bin",
+    "opencode.exe",
+  );
+  if (existsSync(candidate)) {
+    return candidate;
+  }
+  return "opencode.exe";
+}
+
 export function createOpencodeServeSpawnCommand(
   target: LocalOpencodeTarget,
 ): OpencodeServeSpawnCommand {
   const isWindows = process.platform === "win32";
   const port = target.port.toString();
 
+  if (isWindows) {
+    return {
+      command: resolveWindowsOpencodeExe(),
+      args: ["serve", "--port", port],
+      windowsHide: true,
+    };
+  }
+
   return {
-    command: isWindows ? "cmd.exe" : "opencode",
-    args: isWindows ? ["/c", "opencode", "serve", "--port", port] : ["serve", "--port", port],
-    windowsHide: isWindows,
+    command: "opencode",
+    args: ["serve", "--port", port],
+    windowsHide: false,
   };
 }
 
