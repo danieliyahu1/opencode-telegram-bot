@@ -154,7 +154,7 @@ function formatDateTime(dateIso: string | null, timezone: string): string {
   }
 }
 
-const TASK_DETAIL_PROMPT_BYTE_BUDGET = 3800;
+const TASK_DETAIL_PROMPT_BYTE_BUDGET = 3400;
 
 function truncatePromptForDetails(prompt: string): string {
   if (Buffer.byteLength(prompt, "utf-8") <= TASK_DETAIL_PROMPT_BYTE_BUDGET) {
