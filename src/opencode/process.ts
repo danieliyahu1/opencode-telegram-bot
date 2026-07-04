@@ -80,8 +80,8 @@ export function createOpencodeServeSpawnCommand(
 
     if (resolvedExe) {
       return {
-        command: resolvedExe,
-        args: ["serve", "--port", port],
+        command: "cmd.exe",
+        args: ["/d", "/c", "start", "/B", resolvedExe, "serve", "--port", port],
         windowsHide: true,
       };
     }
@@ -89,7 +89,7 @@ export function createOpencodeServeSpawnCommand(
     // Safe fallback: works with default npm installs where only opencode.cmd is on PATH.
     return {
       command: "cmd.exe",
-      args: ["/c", "opencode", "serve", "--port", port],
+      args: ["/d", "/c", "start", "/B", "opencode", "serve", "--port", port],
       windowsHide: true,
     };
   }
