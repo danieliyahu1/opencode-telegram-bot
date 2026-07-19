@@ -3,7 +3,6 @@ import fsPromises from "node:fs/promises";
 import path from "node:path";
 import { exec, spawn } from "node:child_process";
 import { promisify } from "node:util";
-import { getRuntimeMode } from "../mode.js";
 import { getRuntimePaths } from "../paths.js";
 import { buildServiceChildEnv } from "./env.js";
 import { logger } from "../../utils/logger.js";

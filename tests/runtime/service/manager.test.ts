@@ -52,10 +52,6 @@ vi.mock("../../../src/runtime/paths.js", () => ({
   getRuntimePaths: getRuntimePathsMock,
 }));
 
-vi.mock("../../../src/runtime/mode.js", () => ({
-  getRuntimeMode: vi.fn(() => "installed"),
-}));
-
 vi.mock("../../../src/utils/logger.js", () => ({
   logger: {
     debug: vi.fn(),
