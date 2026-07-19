@@ -5,6 +5,7 @@ import { exec, spawn } from "node:child_process";
 import { promisify } from "node:util";
 import { getRuntimePaths } from "../paths.js";
 import { buildServiceChildEnv } from "./env.js";
+import { logger } from "../../utils/logger.js";
 import type {
   BotServiceState,
   BotServiceStatus,
@@ -88,6 +89,41 @@ function isProcessAlive(pid: number): boolean {
   }
 }
 
+async function getProcessCreationTime(pid: number): Promise<Date | null> {
+  try {
+    if (process.platform === "win32") {
+      const { stdout } = await execAsync(
+        `wmic process where ProcessId=${pid} get CreationDate`,
+      );
+      const lines = stdout.trim().split(/\r?\n/);
+      if (lines.length < 2) {
+        return null;
+      }
+      const dateStr = lines[1]?.trim();
+      if (!dateStr) {
+        return null;
+      }
+      const match = dateStr.match(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/);
+      if (!match) {
+        return null;
+      }
+      return new Date(
+        `${match[1]}-${match[2]}-${match[3]}T${match[4]}:${match[5]}:${match[6]}`,
+      );
+    }
+
+    const { stdout } = await execAsync(`ps -o lstart= -p ${pid}`);
+    const dateStr = stdout.trim();
+    if (!dateStr) {
+      return null;
+    }
+    const timestamp = Date.parse(dateStr);
+    return Number.isNaN(timestamp) ? null : new Date(timestamp);
+  } catch {
+    return null;
+  }
+}
+
 async function waitForProcessExit(pid: number, timeoutMs: number): Promise<boolean> {
   const startTime = Date.now();
 
@@ -167,6 +203,30 @@ export async function getBotServiceStatus(): Promise<BotServiceStatus> {
   }
 
   if (!isProcessAlive(service.pid)) {
+    logger.info(
+      `[Manager] Stale daemon state cleaned up: PID=${service.pid} no longer exists`,
+    );
+    await clearServiceStateFile(stateFilePath);
+    return {
+      status: "stopped",
+      service: null,
+      cleanupReason: "stale",
+    };
+  }
+
+  const processCreationTime = await getProcessCreationTime(service.pid);
+  const storedStartedAtMs = Date.parse(service.startedAt);
+
+  if (
+    processCreationTime &&
+    !Number.isNaN(storedStartedAtMs) &&
+    processCreationTime.getTime() > storedStartedAtMs
+  ) {
+    logger.warn(
+      `[Manager] Stale daemon state detected: PID=${service.pid} exists but was created ` +
+      `at ${processCreationTime.toISOString()} (daemon started at ${service.startedAt}). ` +
+      `The original process died and the PID was reused.`,
+    );
     await clearServiceStateFile(stateFilePath);
     return {
       status: "stopped",
